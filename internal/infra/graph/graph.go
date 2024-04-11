@@ -20,39 +20,35 @@ func NewGraphInfra(dbRepo domain.DbRepository) *GraphInfra {
 	}
 }
 
-func (g *GraphInfra) Check(c context.Context, sbj domain.Vertex,
-	obj domain.Vertex, searchCond domain.SearchCond) (bool, error) {
+func (g *GraphInfra) Check(c context.Context, start domain.Vertex,
+	target domain.Vertex, relation string, searchCond domain.SearchCond) (
+	bool, error) {
 	visited := set.NewSet[domain.Vertex]()
 	q := queue.NewQueue[domain.Vertex]()
-	visited.Add(sbj)
-	q.Push(sbj)
-
+	visited.Add(start)
+	q.Push(start)
 	for !q.IsEmpty() {
 		qLen := q.Len()
 		for i := 0; i < qLen; i++ {
 			vertex, _ := q.Pop()
-			query := domain.Edge{
-				SbjNs:   vertex.Ns,
-				SbjName: vertex.Name,
-				SbjRel:  vertex.Rel,
-			}
-			edges, err := g.dbRepo.Get(c, query, true)
+			edges, err := g.dbRepo.Get(c, domain.Edge{
+				UNs:   vertex.Ns,
+				UName: vertex.Name,
+			}, true)
 			if err != nil {
 				return false, err
 			}
 
 			for _, edge := range edges {
-				if edge.ObjNs == obj.Ns && edge.ObjName == obj.Name &&
-					edge.ObjRel == obj.Rel {
+				if edge.VNs == target.Ns && edge.VName == target.Name &&
+					edge.Rel == relation {
 					return true, nil
 				}
 				child := domain.Vertex{
-					Ns:   edge.ObjNs,
-					Name: edge.ObjName,
-					Rel:  edge.ObjRel,
+					Ns:   edge.VNs,
+					Name: edge.VName,
 				}
-				if !searchCond.ShouldStop(child) &&
-					!visited.Exist(child) {
+				if !visited.Exist(child) {
 					visited.Add(child)
 					q.Push(child)
 				}
@@ -63,128 +59,126 @@ func (g *GraphInfra) Check(c context.Context, sbj domain.Vertex,
 	return false, nil
 }
 
-func (g *GraphInfra) GetPassedVertices(c context.Context, start domain.Vertex,
-	isSbj bool, searchCond domain.SearchCond, collectCond domain.CollectCond,
-	maxDepth int) ([]domain.Vertex, error) {
-	if isSbj {
-		// if err := utils.ValidateVertex(start, true); err != nil {
-		// 	return nil, err
-		// }
-		depth := 0
-		verticesSet := set.NewSet[domain.Vertex]()
-		visited := set.NewSet[domain.Vertex]()
-		q := queue.NewQueue[domain.Vertex]()
-		visited.Add(start)
-		q.Push(start)
-		for !q.IsEmpty() {
-			qLen := q.Len()
-			for i := 0; i < qLen; i++ {
-				vertex, _ := q.Pop()
-				query := domain.Edge{
-					SbjNs:   vertex.Ns,
-					SbjName: vertex.Name,
-					SbjRel:  vertex.Rel,
-				}
-				qEdges, err := g.dbRepo.Get(c, query, true)
-				if err != nil {
-					return nil, err
-				}
+// func (g *GraphInfra) GetPassedVertices(c context.Context, start domain.Vertex,
+// 	isU bool, searchCond domain.SearchCond, collectCond domain.CollectCond,
+// 	maxDepth int) ([]domain.Vertex, error) {
+// 	if isU {
+// 		// if err := utils.ValidateVertex(start, true); err != nil {
+// 		// 	return nil, err
+// 		// }
+// 		depth := 0
+// 		verticesSet := set.NewSet[domain.Vertex]()
+// 		visited := set.NewSet[domain.Vertex]()
+// 		q := queue.NewQueue[domain.Vertex]()
+// 		visited.Add(start)
+// 		q.Push(start)
+// 		for !q.IsEmpty() {
+// 			qLen := q.Len()
+// 			for i := 0; i < qLen; i++ {
+// 				vertex, _ := q.Pop()
+// 				query := domain.Edge{
+// 					UNs:   vertex.Ns,
+// 					UName: vertex.Name,
+// 					URel:  vertex.Rel,
+// 				}
+// 				qEdges, err := g.dbRepo.Get(c, query, true)
+// 				if err != nil {
+// 					return nil, err
+// 				}
 
-				for _, edge := range qEdges {
-					child := domain.Vertex{
-						Ns:   edge.ObjNs,
-						Name: edge.ObjName,
-						Rel:  edge.ObjRel,
-					}
-					if collectCond.ShouldCollect(child) {
-						verticesSet.Add(child)
-					}
-					if !searchCond.ShouldStop(child) &&
-						!visited.Exist(child) {
-						visited.Add(child)
-						q.Push(child)
-					}
-				}
-			}
-			depth++
-			if depth >= maxDepth {
-				break
-			}
-		}
+// 				for _, edge := range qEdges {
+// 					child := domain.Vertex{
+// 						Ns:   edge.VNs,
+// 						Name: edge.VName,
+// 						Rel:  edge.VRel,
+// 					}
+// 					if collectCond.ShouldCollect(child) {
+// 						verticesSet.Add(child)
+// 					}
+// 					if !searchCond.ShouldStop(child) &&
+// 						!visited.Exist(child) {
+// 						visited.Add(child)
+// 						q.Push(child)
+// 					}
+// 				}
+// 			}
+// 			depth++
+// 			if depth >= maxDepth {
+// 				break
+// 			}
+// 		}
 
-		return verticesSet.ToSlice(), nil
-	} else {
-		// if err := utils.ValidateVertex(start, false); err != nil {
-		// 	return nil, err
-		// }
-		depth := 0
-		verticesSet := set.NewSet[domain.Vertex]()
-		visited := set.NewSet[domain.Vertex]()
-		q := queue.NewQueue[domain.Vertex]()
-		visited.Add(start)
-		q.Push(start)
-		for !q.IsEmpty() {
-			qLen := q.Len()
-			for i := 0; i < qLen; i++ {
-				vertex, _ := q.Pop()
-				query := domain.Edge{
-					ObjNs:   vertex.Ns,
-					ObjName: vertex.Name,
-					ObjRel:  vertex.Rel,
-				}
-				qEdges, err := g.dbRepo.Get(c, query, true)
-				if err != nil {
-					return nil, err
-				}
+// 		return verticesSet.ToSlice(), nil
+// 	} else {
+// 		// if err := utils.ValidateVertex(start, false); err != nil {
+// 		// 	return nil, err
+// 		// }
+// 		depth := 0
+// 		verticesSet := set.NewSet[domain.Vertex]()
+// 		visited := set.NewSet[domain.Vertex]()
+// 		q := queue.NewQueue[domain.Vertex]()
+// 		visited.Add(start)
+// 		q.Push(start)
+// 		for !q.IsEmpty() {
+// 			qLen := q.Len()
+// 			for i := 0; i < qLen; i++ {
+// 				vertex, _ := q.Pop()
+// 				query := domain.Edge{
+// 					VNs:   vertex.Ns,
+// 					VName: vertex.Name,
+// 					VRel:  vertex.Rel,
+// 				}
+// 				qEdges, err := g.dbRepo.Get(c, query, true)
+// 				if err != nil {
+// 					return nil, err
+// 				}
 
-				for _, edge := range qEdges {
-					parent := domain.Vertex{
-						Ns:   edge.SbjNs,
-						Name: edge.SbjName,
-						Rel:  edge.SbjRel,
-					}
-					if collectCond.ShouldCollect(parent) {
-						verticesSet.Add(parent)
-					}
-					if !searchCond.ShouldStop(parent) &&
-						!visited.Exist(parent) {
-						visited.Add(parent)
-						q.Push(parent)
-					}
-				}
-			}
-			depth++
-			if depth >= maxDepth {
-				break
-			}
-		}
+// 				for _, edge := range qEdges {
+// 					parent := domain.Vertex{
+// 						Ns:   edge.UNs,
+// 						Name: edge.UName,
+// 						Rel:  edge.URel,
+// 					}
+// 					if collectCond.ShouldCollect(parent) {
+// 						verticesSet.Add(parent)
+// 					}
+// 					if !searchCond.ShouldStop(parent) &&
+// 						!visited.Exist(parent) {
+// 						visited.Add(parent)
+// 						q.Push(parent)
+// 					}
+// 				}
+// 			}
+// 			depth++
+// 			if depth >= maxDepth {
+// 				break
+// 			}
+// 		}
 
-		return verticesSet.ToSlice(), nil
-	}
-}
+// 		return verticesSet.ToSlice(), nil
+// 	}
+// }
 
-func (g *GraphInfra) GetTree(c context.Context, sbj domain.Vertex, maxDepth int) (
+func (g *GraphInfra) GetTree(c context.Context, start domain.Vertex, maxDepth int) (
 	*domain.TreeNode, error) {
 	if res, err := g.dbRepo.Get(
 		c,
 		domain.Edge{
-			SbjNs:   sbj.Ns,
-			SbjName: sbj.Name,
-			SbjRel:  sbj.Rel,
+			UNs:   start.Ns,
+			UName: start.Name,
 		}, true); err != nil {
 		return nil, err
 	} else if len(res) == 0 {
-		return nil, domain.ErrRecordNotFound{}
+		return nil, domain.ErrRecordNotFound
 	}
 
 	root := &domain.TreeNode{
-		Ns:       sbj.Ns,
-		Name:     sbj.Name,
-		Rel:      sbj.Rel,
-		Children: []*domain.TreeNode{},
+		Ns:       start.Ns,
+		Name:     start.Name,
+		Children: map[string]*domain.TreeNode{},
 	}
 	visited := map[domain.Vertex]*domain.TreeNode{}
-	visited[sbj] = root
+	visited[u] = root
 	q := queue.NewQueue[*domain.TreeNode]()
 	q.Push(root)
 	for depth := 1; depth <= maxDepth && !q.IsEmpty(); depth++ {
@@ -195,9 +189,9 @@ func (g *GraphInfra) GetTree(c context.Context, sbj domain.Vertex, maxDepth int)
 			}
 			edges, err := g.dbRepo.Get(c,
 				domain.Edge{
-					SbjNs:   v.Ns,
-					SbjName: v.Name,
-					SbjRel:  v.Rel,
+					UNs:   v.Ns,
+					UName: v.Name,
+					URel:  v.Rel,
 				},
 				true,
 			)
@@ -205,20 +199,20 @@ func (g *GraphInfra) GetTree(c context.Context, sbj domain.Vertex, maxDepth int)
 				return nil, err
 			}
 			for _, edge := range edges {
-				obj := domain.Vertex{
-					Ns:   edge.ObjNs,
-					Name: edge.ObjName,
-					Rel:  edge.ObjRel,
+				v := domain.Vertex{
+					Ns:   edge.VNs,
+					Name: edge.VName,
+					Rel:  edge.VRel,
 				}
-				if node, ok := visited[obj]; !ok {
+				if node, ok := visited[v]; !ok {
 					newNode := &domain.TreeNode{
-						Ns:       obj.Ns,
-						Name:     obj.Name,
-						Rel:      obj.Rel,
+						Ns:       v.Ns,
+						Name:     v.Name,
+						Rel:      v.Rel,
 						Children: []*domain.TreeNode{},
 					}
 					q.Push(newNode)
-					visited[obj] = newNode
+					visited[v] = newNode
 					v.Children = append(v.Children, newNode)
 				} else {
 					v.Children = append(v.Children, node)
@@ -229,14 +223,14 @@ func (g *GraphInfra) GetTree(c context.Context, sbj domain.Vertex, maxDepth int)
 	return root, nil
 }
 
-func (g *GraphInfra) SeeTree(c context.Context, sbj domain.Vertex, maxDepth int) (
+func (g *GraphInfra) SeeTree(c context.Context, u domain.Vertex, maxDepth int) (
 	*charts.Tree, error) {
 	if res, err := g.dbRepo.Get(
 		c,
 		domain.Edge{
-			SbjNs:   sbj.Ns,
-			SbjName: sbj.Name,
-			SbjRel:  sbj.Rel,
+			UNs:   u.Ns,
+			UName: u.Name,
+			URel:  u.Rel,
 		}, true); err != nil {
 		return nil, err
 	} else if len(res) == 0 {
@@ -244,9 +238,9 @@ func (g *GraphInfra) SeeTree(c context.Context, sbj domain.Vertex, maxDepth int)
 	}
 
 	root := domain.Vertex{
-		Ns:   sbj.Ns,
-		Name: sbj.Name,
-		Rel:  sbj.Rel,
+		Ns:   u.Ns,
+		Name: u.Name,
+		Rel:  u.Rel,
 	}
 	visited := map[string]*opts.TreeData{}
 	rootTreeData := &opts.TreeData{
@@ -264,32 +258,32 @@ func (g *GraphInfra) SeeTree(c context.Context, sbj domain.Vertex, maxDepth int)
 			}
 			edges, err := g.dbRepo.Get(c,
 				domain.Edge{
-					SbjNs:   v.Ns,
-					SbjName: v.Name,
-					SbjRel:  v.Rel,
+					UNs:   v.Ns,
+					UName: v.Name,
+					URel:  v.Rel,
 				},
 				true,
 			)
 			if err != nil {
 				return nil, err
 			}
-			sbj := visited[vertexTostring(v)]
+			u := visited[vertexTostring(v)]
 			for _, edge := range edges {
-				obj := domain.Vertex{
-					Ns:   edge.ObjNs,
-					Name: edge.ObjName,
-					Rel:  edge.ObjRel,
+				v := domain.Vertex{
+					Ns:   edge.VNs,
+					Name: edge.VName,
+					Rel:  edge.VRel,
 				}
-				if node, ok := visited[vertexTostring(obj)]; !ok {
+				if node, ok := visited[vertexTostring(v)]; !ok {
 					newNode := &opts.TreeData{
-						Name:     vertexTostring(obj),
+						Name:     vertexTostring(v),
 						Children: []*opts.TreeData{},
 					}
-					q.Push(obj)
-					visited[vertexTostring(obj)] = newNode
-					sbj.Children = append(sbj.Children, newNode)
+					q.Push(v)
+					visited[vertexTostring(v)] = newNode
+					u.Children = append(u.Children, newNode)
 				} else {
-					sbj.Children = append(sbj.Children, node)
+					u.Children = append(u.Children, node)
 				}
 			}
 		}

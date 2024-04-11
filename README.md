@@ -11,3 +11,5 @@
 - [x] List who has access to object
 
 ## Reserved words
+
+relation: member, parent
