@@ -12,4 +12,5 @@
 
 ## Reserved words
 
+namespace: role, user
 relation: member, parent
