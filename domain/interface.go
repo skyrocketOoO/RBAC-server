@@ -15,11 +15,11 @@ type DbRepository interface {
 }
 
 type GraphInfra interface {
-	Check(c context.Context, sbj Vertex, obj Vertex, searchCond SearchCond) (
+	Check(c context.Context, u Vertex, v Vertex, searchCond SearchCond) (
 		found bool, err error)
-	GetPassedVertices(c context.Context, start Vertex, isSbj bool,
+	GetPaths(c context.Context, start Vertex, isSbj bool,
 		searchCond SearchCond, collectCond CollectCond, maxDepth int) (
-		vertices []Vertex, err error)
+		permissions []Permission, err error)
 	GetTree(c context.Context, sbj Vertex, maxDepth int) (*TreeNode, error)
 	// GetShortestPath(sbj Vertex, object Vertex, searchCond SearchCond) ([]Edge, error)
 	// GetAllPaths(sbj Vertex, object Vertex, searchCond SearchCond) ([][]Edge, error)

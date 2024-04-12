@@ -19,10 +19,10 @@ type MongoRepository struct {
 	client *mongo.Client
 }
 
-func NewMongoRepository(client *mongo.Client) (*MongoRepository, error) {
+func NewMongoRepository(client *mongo.Client) *MongoRepository {
 	return &MongoRepository{
 		client: client,
-	}, nil
+	}
 }
 
 func (r *MongoRepository) Ping(c context.Context) error {

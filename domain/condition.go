@@ -25,16 +25,17 @@ func (c *SearchCond) ShouldStop(vertex Vertex) bool {
 			return false
 		}
 	}
-	for _, rel := range c.In.Rels {
-		if vertex.Rel == rel {
-			return false
-		}
-	}
+	// for _, rel := range c.In.Rels {
+	// 	if vertex.Rel == rel {
+	// 		return false
+	// 	}
+	// }
 	return true
 }
 
 type CollectCond struct {
-	In Compare `json:"in"`
+	In    Compare `json:"in"`
+	NotIn Compare `json:"not_in"`
 }
 
 func (c *CollectCond) ShouldCollect(vertex Vertex) bool {
@@ -52,10 +53,10 @@ func (c *CollectCond) ShouldCollect(vertex Vertex) bool {
 			return true
 		}
 	}
-	for _, rel := range c.In.Rels {
-		if vertex.Rel == rel {
-			return true
-		}
-	}
+	// for _, rel := range c.In.Rels {
+	// 	if vertex.Rel == rel {
+	// 		return true
+	// 	}
+	// }
 	return false
 }

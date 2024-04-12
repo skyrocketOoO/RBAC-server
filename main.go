@@ -10,8 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/skyrocketOoO/RBAC-server/api"
 	"github.com/skyrocketOoO/RBAC-server/config"
+	"github.com/skyrocketOoO/RBAC-server/domain"
 	"github.com/skyrocketOoO/RBAC-server/internal/infra/graph"
 	"github.com/skyrocketOoO/RBAC-server/internal/infra/mongo"
+	"github.com/skyrocketOoO/RBAC-server/internal/infra/usecase"
 )
 
 func main() {
@@ -29,6 +31,8 @@ func main() {
 		log.Fatal().Msg(errors.ToString(err, true))
 	}
 	defer disconnectDb()
+
+	dbRepo := mongo.NewMongoRepository(mongoClient)
 
 	var graphInfra domain.GraphInfra
 	graphInfra = graph.NewGraphInfra(dbRepo)

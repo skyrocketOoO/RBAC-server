@@ -1,10 +1,12 @@
 # RBAC-server
 
+The graph edge-based RBAC server which only store relations instead of entities
+
 ## Feature
 
-- [x] Admin(all permission, only implement for check, no path or list)
 - [x] User Permission
 - [x] RBAC
+- [x] HRBAC
 - [x] Access Inheritance
 - [x] Fine grained(given permission without role)
 - [x] Multiple role

@@ -18,3 +18,9 @@ type TreeNode struct {
 	Name     string               `json:"name"`
 	Children map[string]*TreeNode `json:"children"`
 }
+
+type Permission struct {
+	Rel  string
+	Ns   string
+	Name string
+}
