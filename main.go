@@ -11,9 +11,11 @@ import (
 	"github.com/skyrocketOoO/RBAC-server/api"
 	"github.com/skyrocketOoO/RBAC-server/config"
 	"github.com/skyrocketOoO/RBAC-server/domain"
+	"github.com/skyrocketOoO/RBAC-server/internal/delivery/rest"
+	"github.com/skyrocketOoO/RBAC-server/internal/delivery/rest/middleware"
 	"github.com/skyrocketOoO/RBAC-server/internal/infra/graph"
 	"github.com/skyrocketOoO/RBAC-server/internal/infra/mongo"
-	"github.com/skyrocketOoO/RBAC-server/internal/infra/usecase"
+	"github.com/skyrocketOoO/RBAC-server/internal/usecase"
 )
 
 func main() {
@@ -36,7 +38,7 @@ func main() {
 
 	var graphInfra domain.GraphInfra
 	graphInfra = graph.NewGraphInfra(dbRepo)
-	usecase := usecase.NewUsecase(dbRepo, graphInfra)
+	usecase := usecase.NewUsecase(mongoClient, graphInfra, dbRepo)
 	delivery := rest.NewDelivery(usecase)
 
 	router := gin.Default()

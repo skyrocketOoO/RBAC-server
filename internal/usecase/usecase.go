@@ -5,18 +5,30 @@ import (
 	"math"
 
 	"github.com/skyrocketOoO/RBAC-server/domain"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Usecase struct {
-	dbRepo     domain.DbRepository
-	graphInfra domain.GraphInfra
+	mongoClient *mongo.Client
+	graphInfra  domain.GraphInfra
+	dbRepo      domain.DbRepository
 }
 
-func NewUsecase(dbRepo domain.DbRepository, graphInfra domain.GraphInfra) *Usecase {
+func NewUsecase(mongoCli *mongo.Client, graphInfra domain.GraphInfra,
+	dbRepo domain.DbRepository) *Usecase {
 	return &Usecase{
-		dbRepo:     dbRepo,
-		graphInfra: graphInfra,
+		mongoClient: mongoCli,
+		graphInfra:  graphInfra,
 	}
+}
+
+func (u *Usecase) Healthy(c context.Context) error {
+	// do something check like db connection is established
+	if err := u.dbRepo.Ping(c); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (u *Usecase) DeleteUser(c context.Context, name string) error {
@@ -25,7 +37,7 @@ func (u *Usecase) DeleteUser(c context.Context, name string) error {
 
 func (u *Usecase) UserGetPermissions(c context.Context, name string) (
 	[]domain.Permission, error) {
-	return u.graphInfra.GetPaths(
+	return u.graphInfra.SearchPermissions(
 		c,
 		domain.Vertex{
 			Ns:   "user",
@@ -43,7 +55,7 @@ func (u *Usecase) UserGetPermissions(c context.Context, name string) (
 
 func (u *Usecase) UserGetRoles(c context.Context, name string) (
 	[]string, error) {
-	rels, err := u.graphInfra.GetPaths(
+	vertices, err := u.graphInfra.SearchVertices(
 		c,
 		domain.Vertex{
 			Ns:   "user",
@@ -64,15 +76,15 @@ func (u *Usecase) UserGetRoles(c context.Context, name string) (
 	if err != nil {
 		return nil, err
 	}
-	roles := make([]string, len(rels))
-	for i, rel := range rels {
+	roles := make([]string, len(vertices))
+	for i, rel := range vertices {
 		roles[i] = rel.Name
 	}
 	return roles, nil
 }
 
 func (u *Usecase) UserCheck(c context.Context, username string, objNs string,
-	objName string) (bool, error) {
+	relation string, objName string) (bool, error) {
 	return u.graphInfra.Check(
 		c,
 		domain.Vertex{
@@ -83,6 +95,7 @@ func (u *Usecase) UserCheck(c context.Context, username string, objNs string,
 			Ns:   objNs,
 			Name: objName,
 		},
+		relation,
 		domain.SearchCond{},
 	)
 }
@@ -160,7 +173,7 @@ func (u *Usecase) RoleGetUsers(c context.Context, name string) ([]string, error)
 
 func (u *Usecase) RoleGetPermissions(c context.Context, name string) (
 	[]domain.Permission, error) {
-	return u.graphInfra.GetPaths(
+	return u.graphInfra.SearchPermissions(
 		c,
 		domain.Vertex{
 			Ns:   "role",
@@ -265,7 +278,7 @@ func (u *Usecase) DeleteObject(c context.Context, ns string,
 
 func (u *Usecase) WhichRoleHasPermission(c context.Context, objNs string,
 	objName string) ([]string, error) {
-	permissions, err := u.graphInfra.GetPaths(
+	vertices, err := u.graphInfra.SearchVertices(
 		c,
 		domain.Vertex{
 			Ns:   objNs,
@@ -282,12 +295,40 @@ func (u *Usecase) WhichRoleHasPermission(c context.Context, objNs string,
 	if err != nil {
 		return nil, err
 	}
-	for
+	roles := make([]string, len(vertices))
+	for i, v := range vertices {
+		roles[i] = v.Name
+	}
+	return roles, nil
 }
 
 func (u *Usecase) WhichUserHasPermission(c context.Context, objNs string,
-	objName string) {
-
+	objName string) ([]string, error) {
+	vertices, err := u.graphInfra.SearchVertices(
+		c,
+		domain.Vertex{
+			Ns:   objNs,
+			Name: objName,
+		},
+		false,
+		domain.SearchCond{},
+		domain.CollectCond{
+			NotIn: domain.Compare{
+				Nses: []string{"user"},
+			},
+		},
+		math.MaxInt)
+	if err != nil {
+		return nil, err
+	}
+	users := make([]string, len(vertices))
+	for i, v := range vertices {
+		users[i] = v.Name
+	}
+	return users, nil
 }
 
-func (u *Usecase) DeletePermission(c context.Context, permissionName string) {}
+// func (u *Usecase) DeletePermission(c context.Context, name string) {
+// 	u.dbRepo.Delete(c, domain.Edge{Rel: "permission", VName: permissionName},
+// 		true)
+// }

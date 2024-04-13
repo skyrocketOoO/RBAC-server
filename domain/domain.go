@@ -24,3 +24,7 @@ type Permission struct {
 	Ns   string
 	Name string
 }
+
+type Response struct {
+	Msg string `json:"msg"`
+}
