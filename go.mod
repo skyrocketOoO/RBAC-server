@@ -6,7 +6,6 @@ go 1.22.1
 
 require (
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-echarts/go-echarts/v2 v2.3.3
 	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.32.0
 	github.com/skyrocketOoO/go-utility v0.0.0-20240131142515-6086e61f7ca5
