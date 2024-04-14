@@ -10,17 +10,36 @@ func Binding(r *gin.Engine, d *rest.RestDelivery) {
 	r.GET("/healthy", d.Healthy)
 	// r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	relRouter := r.Group("/user")
-	{
-		relRouter.GET("/", d.Get)
-		relRouter.POST("/", d.Create)
-		relRouter.DELETE("/", d.Delete)
-		relRouter.DELETE("/all", d.ClearAll)
+	r.GET("/ping", d.Ping)
+	r.GET("/healthy", d.Healthy)
 
-		relRouter.POST("/check", d.CheckAuth)
-		relRouter.POST("/obj-auths", d.GetObjAuths)
-		relRouter.POST("/sbj-who-has-auth", d.GetSbjsWhoHasAuth)
-		relRouter.POST("/get-tree", d.GetTree)
-		relRouter.GET("/see-tree", d.SeeTree)
+	userR := r.Group("/user")
+	{
+		userR.DELETE("/", d.DeleteUser)
+		userR.GET("/permission", d.UserGetPermissions)
+		userR.GET("/role", d.UserGetRoles)
+		userR.GET("/check", d.UserCheck)
+		userR.POST("/permission", d.UserAddPermission)
+		userR.DELETE("/permission", d.UserRemovePermission)
+		userR.POST("/role", d.UserAddRole)
+		userR.DELETE("/role", d.UserRemoveRole)
+	}
+	roleR := r.Group("/role")
+	{
+		roleR.DELETE("/", d.DeleteRole)
+		roleR.GET("/user", d.RoleGetUsers)
+		roleR.GET("/permission", d.RoleGetPermissions)
+		roleR.POST("/permission", d.RoleAddPermission)
+		roleR.DELETE("/permission", d.RoleRemovePermission)
+		roleR.POST("/inherit", d.RoleInheritRole)
+		roleR.DELETE("/inherit", d.RoleUnInheritRole)
+		roleR.GET("/child", d.RoleGetChildRole)
+		roleR.GET("/parent", d.RoleGetParentRole)
+	}
+	objectR := r.Group("/object")
+	{
+		objectR.DELETE("/", d.DeleteObject)
+		objectR.GET("/role", d.WhichRoleHasPermission)
+		objectR.GET("/user", d.WhichUserHasPermission)
 	}
 }
