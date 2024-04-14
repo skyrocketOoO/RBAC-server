@@ -10,18 +10,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var (
-	db         = viper.GetString("mongo.db")
-	collection = viper.GetString("mongo.collection")
-)
-
 type MongoRepository struct {
-	client *mongo.Client
+	client     *mongo.Client
+	db         string
+	collection string
 }
 
 func NewMongoRepository(client *mongo.Client) *MongoRepository {
 	return &MongoRepository{
-		client: client,
+		client:     client,
+		db:         viper.GetString("mongo.db"),
+		collection: viper.GetString("mongo.collection"),
 	}
 }
 
@@ -31,7 +30,7 @@ func (r *MongoRepository) Ping(c context.Context) error {
 
 func (r *MongoRepository) Get(c context.Context, filter domain.Edge, queryMode bool) (
 	[]domain.Edge, error) {
-	col := r.client.Database(db).Collection(collection)
+	col := r.client.Database(r.db).Collection(r.collection)
 	edges := []domain.Edge{}
 	if queryMode {
 		if filter == (domain.Edge{}) {
@@ -73,14 +72,14 @@ func (r *MongoRepository) Get(c context.Context, filter domain.Edge, queryMode b
 }
 
 func (r *MongoRepository) Create(c context.Context, edge domain.Edge) error {
-	col := r.client.Database(db).Collection(collection)
+	col := r.client.Database(r.db).Collection(r.collection)
 	_, err := col.InsertOne(c, edge)
 	return err
 }
 
 func (r *MongoRepository) Delete(c context.Context, edge domain.Edge,
 	queryMode bool) error {
-	col := r.client.Database(db).Collection(collection)
+	col := r.client.Database(r.db).Collection(r.collection)
 	if queryMode {
 		_, err := col.DeleteMany(c, rmZeroVal(edge))
 		return err
@@ -94,7 +93,7 @@ func (r *MongoRepository) Delete(c context.Context, edge domain.Edge,
 }
 
 func (r *MongoRepository) ClearAll(c context.Context) error {
-	col := r.client.Database(db).Collection(collection)
+	col := r.client.Database(r.db).Collection(r.collection)
 	_, err := col.DeleteMany(c, bson.M{})
 	return err
 }
